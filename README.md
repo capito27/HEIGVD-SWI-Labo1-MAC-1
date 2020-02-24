@@ -93,6 +93,8 @@ a) Utiliser la fonction de déauthentification de la suite aircrack, capturer le
 
 __Question__ : quel code est utilisé par aircrack pour déauthentifier un client 802.11. Quelle est son interpretation ?
 
+    Le reason code indiqué est le 7, soit "Class 3 frame received from nonassociated station".
+
 __Question__ : A l'aide d'un filtre d'affichage, essayer de trouver d'autres trames de déauthentification dans votre capture. Avez-vous en trouvé d'autres ? Si oui, quel code contient-elle et quelle est son interpretation ?
 
 b) Développer un script en Python/Scapy capable de générer et envoyer des trames de déauthentification. Le script donne le choix entre des Reason codes différents (liste ci-après) et doit pouvoir déduire si le message doit être envoyé à la STA ou à l'AP :
@@ -101,15 +103,26 @@ b) Développer un script en Python/Scapy capable de générer et envoyer des tra
 * 5 - Disassociated because AP is unable to handle all currently associated stations
 * 8 - Deauthenticated because sending STA is leaving BSS
 
-__Question__ : quels codes/raisons justifient l'envoie de la trame à la STA cible et pourquoi ?
+__Question__ : quels codes/raisons justifient l'envoi de la trame à la STA cible et pourquoi ?
+
+    Le R.C. 1 (unspecified) n'indique rien de précis, il peut donc être utilisé dans toutes sortes de situations.
+    Le R.C. 4 (Disassociated due to inactivity) est lié à la déconnexion forcée par l'AP lorsque le client en question est trop longtemps inactif, il n'a donc que de sens lorsque l'AP envoie la trame à la STA.
+    Le R.C. 5 (Disassociated because AP is unable to handle all currently associated stations) est dans le même esprit que le R.C. 4, soit l'AP se débarasse de la connexion de la STA, car l'AP a trop de STA connectées.
 
 __Question__ : quels codes/raisons justifient l'envoie de la trame à l'AP et pourquoi ?
 
+    Le R.C. 1 (unspecified) n'indique rien de précis, il peut donc être utilisé dans toutes sortes de situations.
+    Le R.C. 8 (Deauthenticated because sending STA is leaving BSS) est lié à une STA sortant de la range de l'AP, ce qui n'a donc de sens que venant de la STA.
+
 __Question__ : Comment essayer de déauthentifier toutes les STA ?
+
+    On utilise comme addresse de cible client l'adresse FF:FF:FF:FF:FF:FF, ce qui déconnecte tous les clients connectés.
 
 __Question__ : Quelle est la différence entre le code 3 et le code 8 de la liste ?
 
 __Question__ : Expliquer l'effet de cette attaque sur la cible
+
+    La cible est déconnectée de l'AP et perd temporairement la connectivité à internet. Elle se reconnecte directement à l'AP ou à un autre réseau disponible.
 
 ### 2. Fake channel evil tween attack
 a)	Développer un script en Python/Scapy avec les fonctionnalités suivantes :
