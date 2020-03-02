@@ -93,9 +93,11 @@ a) Utiliser la fonction de déauthentification de la suite aircrack, capturer le
 
 __Question__ : quel code est utilisé par aircrack pour déauthentifier un client 802.11. Quelle est son interpretation ?
 
-    Le reason code indiqué est le 7, soit "Class 3 frame received from nonassociated station".
+    Le reason code indiqué est le 7, soit "Class 3 frame received from nonassociated station". Ce reason code est indiqué si une STA cliente a tenté de transférer des données (> class 2) alors qu'elle n'était pas encore associée à l'AP.
 
 __Question__ : A l'aide d'un filtre d'affichage, essayer de trouver d'autres trames de déauthentification dans votre capture. Avez-vous en trouvé d'autres ? Si oui, quel code contient-elle et quelle est son interpretation ?
+
+    Avec ce filtre d'affichage : wlan.fc.type_subtype == 12, nous avons pu retrouver les trames que nous avons envoyées, mais même en changeant de channel, nous n'avons pas pu observer d'autres trames sur le réseau.
 
 b) Développer un script en Python/Scapy capable de générer et envoyer des trames de déauthentification. Le script donne le choix entre des Reason codes différents (liste ci-après) et doit pouvoir déduire si le message doit être envoyé à la STA ou à l'AP :
 * 1 - Unspecified
@@ -103,16 +105,22 @@ b) Développer un script en Python/Scapy capable de générer et envoyer des tra
 * 5 - Disassociated because AP is unable to handle all currently associated stations
 * 8 - Deauthenticated because sending STA is leaving BSS
 
+Voici le script en cours avec deux codes de raison différents :
+
+![Script deauth en cours d'utilisation avec le code de raison 1](images/script1_en_cours_reason1.png)
+
+![Script deauth en cours d'utilisation avec le code de raison 8](images/script1_en_cours_reason8.png)
+
 __Question__ : quels codes/raisons justifient l'envoi de la trame à la STA cible et pourquoi ?
 
-    Le R.C. 1 (unspecified) n'indique rien de précis, il peut donc être utilisé dans toutes sortes de situations.
+    Le R.C. 1 (unspecified) indique qu'on ne sait pas quel est le problème, il peut donc être utilisé dans toutes sortes de situations.
     Le R.C. 4 (Disassociated due to inactivity) est lié à la déconnexion forcée par l'AP lorsque le client en question est trop longtemps inactif, il n'a donc que de sens lorsque l'AP envoie la trame à la STA.
-    Le R.C. 5 (Disassociated because AP is unable to handle all currently associated stations) est dans le même esprit que le R.C. 4, soit l'AP se débarasse de la connexion de la STA, car l'AP a trop de STA connectées.
+    Le R.C. 5 (Disassociated because AP is unable to handle all currently associated stations) est dans le même esprit que le R.C. 4, soit l'AP se débarasse de la connexion avec la STA, car l'AP a trop de STA connectées.
 
 __Question__ : quels codes/raisons justifient l'envoie de la trame à l'AP et pourquoi ?
 
-    Le R.C. 1 (unspecified) n'indique rien de précis, il peut donc être utilisé dans toutes sortes de situations.
-    Le R.C. 8 (Deauthenticated because sending STA is leaving BSS) est lié à une STA sortant de la range de l'AP, ce qui n'a donc de sens que venant de la STA.
+    Le R.C. 1 (unspecified) indique qu'on ne sait pas quel est le problème, il peut donc être utilisé dans toutes sortes de situations.
+    Le R.C. 8 (Deauthenticated because sending STA is leaving BSS) est lié à une STA quittant le BSS dans lequel elle était jusqu'alors, ce qui n'a donc de sens que venant de la STA quittant le BSS.
 
 __Question__ : Comment essayer de déauthentifier toutes les STA ?
 
@@ -120,11 +128,20 @@ __Question__ : Comment essayer de déauthentifier toutes les STA ?
 
 __Question__ : Quelle est la différence entre le code 3 et le code 8 de la liste ?
 
+    3 : station is leaving (or has left) IBSS or ESS
+    8 : deauthenticated because sending STA is leaving BSS
+
+    Dans le cas d'un code 8 on se trouve dans le cadre Wifi classique d'un Basic Service Set avec un point d'accès (AP) et des stations clients associées à ce dernier.
+
+    Le code 3 indique qu'on se trouve dans un autre cadre, soit un réseau wireless ad-hoc (IBSS) ne contenant pas d'AP ou un extended service set (ESS, plusieurs BSS paraissants comme unique au layer 2.)
+
+    Dans les deux cas, une station sort du service set dont elle faisait partie jusqu'alors.
+
 __Question__ : Expliquer l'effet de cette attaque sur la cible
 
     La cible est déconnectée de l'AP et perd temporairement la connectivité à internet. Elle se reconnecte directement à l'AP ou à un autre réseau disponible.
 
-### 2. Fake channel evil tween attack
+### 2. Fake channel evil twin attack
 a)	Développer un script en Python/Scapy avec les fonctionnalités suivantes :
 
 * Dresser une liste des SSID disponibles à proximité
@@ -132,12 +149,21 @@ a)	Développer un script en Python/Scapy avec les fonctionnalités suivantes :
 * Permettre à l'utilisateur de choisir le réseau à attaquer
 * Générer un beacon concurrent annonçant un réseau sur un canal différent se trouvant à 6 canaux de séparation du réseau original
 
+![Script fake channel twin attack en cours d'utilisation](images/script2_en_cours.png)
+
 __Question__ : Expliquer l'effet de cette attaque sur la cible
 
+    Le but est de créer un réseau qui semble équivalent à un autre afin de forcer ses utilisateurs à s'y connecter. Cela exploite le fait que sur beaucoup de devices les réseaux disponibles n'indiquent que des informations limitées (nom, nécessité d'un password, encryption).
+    On peut alors simplement créer un accès point reflétant ces informations si on les a ou forcer les utilisateurs à s'y connecter via social engineering.
+    L'attaque deauth vue précédemment pourrait également être utilisée pour déconnecter l'utilisateur d'un AP pour lequel on a créé un evil twin. L'utilisateur peu soucieux pourrait alors se sentir justifié à se connecter à notre AP frauduleux.
 
 ### 3. SSID flood attack
 
 Développer un script en Python/Scapy capable d'inonder la salle avec des SSID dont le nom correspond à une liste contenue dans un fichier text fournit par un utilisateur. Si l'utilisateur ne possède pas une liste, il peut spécifier le nombre d'AP à générer. Dans ce cas, les SSID seront générés de manière aléatoire.
+
+Pour ce script on suit la même logique au niveau du code que pour la génération des trames beacon pour l'evil twin attack. On doit simplement ajouter l'utilisation des SSIDs depuis un fichier et la génération aléatoire des SSID si ce fichier est absent.
+
+![Script SSID flood en cours d'utilisation](images/script3_en_cours.png)
 
 ## Livrables
 
@@ -145,7 +171,7 @@ Un fork du repo original . Puis, un Pull Request contenant :
 
 - Script de Deauthentication de clients 802.11 __abondamment commenté/documenté__
 
-- Script fake chanel __abondamment commenté/documenté__
+- Script fake channel __abondamment commenté/documenté__
 
 - Script SSID flood __abondamment commenté/documenté__
 
